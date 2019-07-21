@@ -94,10 +94,13 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
+    if (msg.author.bot) 
+        return;
+
     if (msg.content == (prefix+'owo')) {
         msg.reply('*OwO*');
     } 
-    else if (msg.content.includes('bulge') && client.user != msg.author) {
+    else if (msg.content.includes('bulge')) {
         msg.reply('*Notices bulge OwO Wat this?*');
     }
     else if (msg.content[0] == prefix && msg.content.substr(0, prefix.length+3) != (prefix+"owo")) {
