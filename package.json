@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "discord.js": "^11.5.1",
-    "puppeteer": "^1.18.1"
+    "dotenv": "^8.0.0",
+    "puppeteer": "^1.18.1",
+    "snoowrap": "^1.17.0"
   }
 }

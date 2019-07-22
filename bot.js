@@ -1,9 +1,17 @@
+require('dotenv').config()
 const Discord = require('discord.js');
-const puppeteer = require('puppeteer');
+const Snoowrap = require('snoowrap');
 const HashMap = require('./hashmap.js');
 
 const client = new Discord.Client();
 const config = require('./config.json');
+const r = new Snoowrap({
+    userAgent: config.name,
+    clientId: config.clientID,
+    clientSecret: config.clientSecret,
+    username: config.redditUser,
+    password: config.redditPass
+});
 
 const prefix = config.prefix;
 var subreddits = new HashMap();
@@ -21,60 +29,28 @@ function getRandomColor() {
 
 // Returns nth post from a subreddit
 async function getPost(subreddit, postnum) {
-    const browser = await puppeteer.launch({
-        headless: true,
-        executablePath: './node_modules/puppeteer/.local-chromium/linux-672088/chrome-linux/chrome',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-    
-    await page.goto('https://reddit.com/r/' + subreddit + '/hot', {waitUntil: 'networkidle0'})
-    
-    const res = await page.evaluate(async (postnum) => {
-        let post_path = '#SHORTCUT_FOCUSABLE_DIV > div:nth-child(4) > div > div > div > div.s75588i-1.cHeFxI > div._1vyLCp-v-tE5QvZovwrASa > div.s60uip8-0.bBQgFn > div.rpBJOHq2PR60pnwJlUyP0 > div:nth-child(';
-        let post_title_path = 'div._1poyrkZ7g36PawDueRza-J._11R7M_VOgKO1RJyRSRErT3 > div._2FCtq-QzlfuN-SwVMUZMM3._3wiKjmhpIpoTE2r5KCm2o6';
-        let post_content_path = 'div._1poyrkZ7g36PawDueRza-J._11R7M_VOgKO1RJyRSRErT3 > div.STit0dLageRsa2yR4te_b'
-
-        let post = document.querySelector(post_path + postnum + ')');
-        let errMsg = "";
-
-        if (typeof post === 'undefined') {
-            errMsg += '[ERROR]: PAGE.EVALUATE querySelector failed for post #' + postnum + "\n";
-            throw(errMsg);
+    return await r.getSubreddit(subreddit).getHot()
+    .then((posts) => {
+        post = posts[postnum];
+ 
+        title = post.title;
+        content = post.selftext;
+        hasImg = false;
+        if (content == "") {
+            hasImg = true;
+            content += post.url;
         }
-
-        let title = post.querySelector(post_title_path).innerText
-        let content = post.querySelector(post_content_path).innerText;
-        let hasImg = false
-
-        if (content == ''){
-            try {
-                content = post.querySelector(post_content_path).querySelectorAll('img')
-                imgs = ''
-    
-                for (let i = 0; i < content.length; i++) {
-                    imgs += content[i].src;
-                    imgs += '\n'
-                }
-    
-                content = imgs;
-                hasImg = true
-            } catch (error) {
-                errMsg += '[ERROR] PAGE.EVAULATE querySelector failed for text and images\n';
-                content = ""
-            }
-        }
-
+        
         return {
             title,
             content,
-            hasImg, 
-            errMsg
+            hasImg
         }
-    }, postnum)
-
-    await browser.close()
-    return res
+    })
+    .catch((err) => {
+        console.log('[ERROR] Failed in getSubreddit().getHot() ', err.message);
+        throw(err);
+    })
 }
 
 function owofy(text) {
@@ -115,17 +91,28 @@ client.on('message', msg => {
             subreddits.inc(subreddit);
         
         let err = getPost(subreddit, overideNum ? Number(cmds[1]) : subreddits.get(subreddit)).then((post) => {
-            if (post.errMsg != "")
-                console.log(post.errMsg);
-            
             if (post.hasImg) {
-                msg.channel.send('***'+post.title+'***\n\n'+post.content);
+                msg.channel.send(`***${post.title}***\n${post.content}`);
             } else {
-                const embed = new Discord.RichEmbed()
-                .setTitle(post.title)
-                .setColor(getRandomColor())
-                .setDescription(flag ? owofy(post.content) : post.content);
-                msg.channel.send(embed);
+                if (post.content.length > 2000) {
+                    msg.channel.send(`***${post.title}***`);
+                    let content_length = post.content.length;
+
+                    // For post with long content
+                    for (let i = 0; i < (content_length%2000); i++) {
+                        let post_content = post.content.slice(i*2000, (i+1)*2000);
+                        if (post_content.length == 0) {
+                            break;
+                        }
+                        msg.channel.send(post_content);
+                    }
+                } else {
+                    const embed = new Discord.RichEmbed()
+                    .setTitle(post.title)
+                    .setColor(getRandomColor())
+                    .setDescription(flag ? owofy(post.content) : post.content);
+                    msg.channel.send(embed);
+                }
             }
     
             return false;      
