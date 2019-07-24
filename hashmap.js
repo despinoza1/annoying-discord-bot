@@ -9,7 +9,16 @@ class HashMap {
         if (!this._storage[idx])
             this._storage[idx] = []
         
-        this._storage[idx].push([key, val]);
+        if (!this.has(key))
+            this._storage[idx].push([key, val]);
+        else {
+            for (let i = 0; i < this._storage[idx].length; i++) {
+                if (this._storage[idx][i][0] == key) {
+                    this._storage[idx][i][1] = val;
+                    break;
+                }
+            }
+        }
     }
     
     get(key) {

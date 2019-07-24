@@ -76,8 +76,14 @@ client.on('message', msg => {
     if (msg.content == (prefix+'owo')) {
         msg.reply('*OwO*');
     }
-    else if (msg.content == (prefix+'reset')) {
-        subreddits = new HashMap();
+    else if (msg.content.includes(prefix+'reset')) {
+        let cmds = msg.content.split(' ');
+        if (cmds.length == 1)
+            subreddits = new HashMap();
+        else {
+            for (let i = 1; i < cmds.length; i++)
+                subreddits.set(cmds[i], 0);
+        }
     }
     else if (msg.content.includes('bulge')) {
         msg.reply('*Notices bulge OwO Wat this?*');
