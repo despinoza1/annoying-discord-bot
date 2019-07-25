@@ -56,6 +56,7 @@ async function getPost(subreddit, postnum) {
 function owofy(text) {
     text = text.replace(/(r|l)/g, 'w');
     text = text.replace(/(R|L)/g, 'W');
+    text = text.replace(/ this /g, ' dis ');
     text = text.replace(prefix+'owo', '');
 
     return text;
